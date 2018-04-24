@@ -36,37 +36,41 @@ def call(body) {
         }
     }
     // integration tests
-    node('master'){
-        def oses = ['ubuntu', 'centos']
-        def builders = [:]
+    if(env.BRANCH_NAME == 'master') {
+        node('master'){
+            def oses = ['ubuntu', 'centos']
+            def builders = [:]
 
-        for (x in oses) {
-            def label = x
+            for (x in oses) {
+                def label = x
 
-            builders[label] = {
-                node {
-                    docker.image(label).inside {
-                        stage("testing $label") {
-                            echo "integration testing $label image"
+                builders[label] = {
+                    node {
+                        docker.image(label).inside {
+                            stage("testing $label") {
+                                echo "integration testing $label image"
+                            }
                         }
                     }
                 }
             }
+            parallel builders
         }
     }
     // upload binary to S3
     stage('Upload to S3') {
         slackSend (color: '#00FF00', channel: '#validations', message: "Waiting for input validation on whether the build worked @ (${env.RUN_DISPLAY_URL})")
-        input message: "Ready to deploy to S3?", ok: "YES"
+        def submitter = input message: "Ready to upload to S3?", ok: "YES", submitterParameter: 'submitter'
+        slackSend (color: '#00FF00', channel: '#validations', message: "'$submitter' approved the deploy to S3")
         node('master'){
             unstash 'artifacts'
             withAWS(credentials: 'dd2f3729-de38-4b36-8387-9c7854c00a78',region: 'us-east-1') {
-                s3Upload acl: 'Private', path: ${product}, bucket: pipelineParams.release_bucket, includePathPattern: pipelineParams.artifact_pattern
+                s3Upload acl: 'Private', path: 'path/to/app/', bucket: pipelineParams.release_bucket, includePathPattern: pipelineParams.artifact_pattern
             }
         }
     }
     // create JIRA ticket if provided
     if (pipelineParams.jira_ticket) {
-        stepCreateJIRATicket(jira_ticket)
+        stepCreateJIRATicket(pipelineParams.jira_ticket)
     }
 }
