@@ -26,6 +26,17 @@ def call(body) {
                 sh pipelineParams.release_script
             }
         }
+        // if a report pattern is defined we published them after the build and test
+        stage('blah') {
+          echo "blah"
+        }
+        echo "i am here"
+        echo "${pipelineParams.reports_pattern}"
+        if (pipelineParams.reports_pattern) {
+            stage('Publish Reports') {
+                junit "${pipelineParams.reports_pattern}"
+            }
+        }
         // only package for master branch
         if (env.BRANCH_NAME == 'master') {
             stage('Package'){
