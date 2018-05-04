@@ -35,6 +35,8 @@ def call(body) {
         if (pipelineParams.reports_pattern) {
             stage('Publish Reports') {
                 junit "${pipelineParams.reports_pattern}"
+                step([$class: 'Publisher', reportFilenamePattern: "${pipelineParams.reports_pattern}"])
+
             }
         }
         // only package for master branch
