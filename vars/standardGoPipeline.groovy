@@ -71,14 +71,16 @@ def call(body) {
         }
     }
     // upload binary to S3
-    stage('Upload to S3') {
-        slackSend (color: '#00FF00', channel: '#validations', message: "Waiting for input validation on whether the build worked @ (${env.RUN_DISPLAY_URL})")
-        def submitter = input message: "Ready to upload to S3?", ok: "YES", submitterParameter: 'submitter'
-        slackSend (color: '#00FF00', channel: '#validations', message: "'$submitter' approved the deploy to S3")
-        node('master'){
-            unstash 'artifacts'
-            withAWS(credentials: 'dd2f3729-de38-4b36-8387-9c7854c00a78',region: 'us-east-1') {
-                s3Upload acl: 'Private', path: 'path/to/app/', bucket: pipelineParams.release_bucket, includePathPattern: pipelineParams.artifact_pattern
+    if (env.BRANCH_NAME == 'master') {
+        stage('Upload to S3') {
+            slackSend (color: '#00FF00', channel: '#validations', message: "Waiting for input validation on whether the build worked @ (${env.RUN_DISPLAY_URL})")
+            def submitter = input message: "Ready to upload to S3?", ok: "YES", submitterParameter: 'submitter'
+            slackSend (color: '#00FF00', channel: '#validations', message: "'$submitter' approved the deploy to S3")
+            node('master'){
+                unstash 'artifacts'
+                withAWS(credentials: 'dd2f3729-de38-4b36-8387-9c7854c00a78',region: 'us-east-1') {
+                    s3Upload acl: 'Private', path: 'path/to/app/', bucket: pipelineParams.release_bucket, includePathPattern: pipelineParams.artifact_pattern
+                }
             }
         }
     }
